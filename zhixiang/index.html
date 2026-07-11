@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0E1A2B" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>织想 — 把散落的想法织成提示词</title>
+  <style>
+    :root {
+      --bg: #0e1a2b;
+      --bg-elevated: #152238;
+      --grouped: rgba(28, 40, 58, 0.72);
+      --grouped-solid: #1c283a;
+      --fill: rgba(255, 255, 255, 0.06);
+      --fill-strong: rgba(255, 255, 255, 0.1);
+      --ink: #d7e3f0;
+      --ink-soft: #a8b8cc;
+      --muted: #7f91a8;
+      --line: rgba(215, 227, 240, 0.1);
+      --line-strong: rgba(215, 227, 240, 0.16);
+      --accent: #5ba4d9;
+      --accent-deep: #3d8fc9;
+      --accent-soft: rgba(91, 164, 217, 0.16);
+      --danger: #ff6b6b;
+      --radius: 12px;
+      --radius-sm: 10px;
+      --radius-pill: 980px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+        "PingFang SC", "Helvetica Neue", "Segoe UI", sans-serif;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+      --max: 680px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.47;
+      letter-spacing: -0.01em;
+      background:
+        radial-gradient(900px 520px at 50% -12%, rgba(91, 164, 217, 0.18), transparent 58%),
+        radial-gradient(700px 420px at 100% 30%, rgba(45, 90, 140, 0.22), transparent 55%),
+        linear-gradient(180deg, #0e1a2b 0%, #0b1524 55%, #09111d 100%);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.22;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+      z-index: 0;
+    }
+
+    .threads {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .threads svg {
+      position: absolute;
+      width: 140%;
+      height: 65%;
+      left: -20%;
+      top: -6%;
+      opacity: 0.22;
+    }
+
+    .threads path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1.1;
+      stroke-linecap: round;
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      animation: draw-thread 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .threads path:nth-child(2) {
+      stroke: rgba(215, 227, 240, 0.55);
+      animation-delay: 0.2s;
+    }
+
+    .threads path:nth-child(3) {
+      animation-delay: 0.4s;
+      stroke-width: 0.7;
+      opacity: 0.7;
+    }
+
+    @keyframes draw-thread {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(100% - 2rem, var(--max));
+      margin: 0 auto;
+      padding: 0 0 calc(4.5rem + var(--safe-bottom));
+    }
+
+    /* Hero — Apple large title energy */
+    .hero {
+      min-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 5rem 0 3.25rem;
+    }
+
+    .brand {
+      margin: 0 0 0.85rem;
+      font-size: clamp(3.4rem, 12vw, 4.75rem);
+      font-weight: 700;
+      letter-spacing: -0.045em;
+      line-height: 1.02;
+      color: #fff;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.7rem;
+      max-width: 14em;
+      font-size: clamp(1.35rem, 4.2vw, 1.7rem);
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1.3;
+      color: var(--ink);
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.26s forwards;
+    }
+
+    .hero p {
+      margin: 0 0 1.75rem;
+      max-width: 28em;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.5;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards;
+    }
+
+    .hero .cta {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.54s forwards;
+    }
+
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      padding: 0.78rem 1.2rem;
+      border-radius: var(--radius-pill);
+      transition: background 0.2s ease, opacity 0.2s ease, transform 0.12s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+
+    .btn:active { transform: scale(0.98); opacity: 0.88; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #061018;
+    }
+
+    .btn-primary:hover { background: var(--accent-deep); color: #fff; }
+
+    .btn-ghost {
+      background: var(--fill-strong);
+      color: var(--ink);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 0.42rem 0.78rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.14); }
+
+    .btn-ghost:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-danger { color: #ff8e8e; }
+
+    .btn-block {
+      width: 100%;
+      padding: 0.95rem 1.2rem;
+      font-size: 1.05rem;
+      border-radius: var(--radius);
+    }
+
+    section {
+      margin-top: 1.75rem;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    #workspace { animation-delay: 0.05s; scroll-margin-top: 1.5rem; }
+    #ideas-section { animation-delay: 0.08s; }
+    #generate-section { animation-delay: 0.1s; }
+    #result-section { animation-delay: 0.12s; }
+    #history-section { animation-delay: 0.14s; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0.15rem 0.55rem;
+    }
+
+    .section-head h2,
+    .label {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+
+    .hint {
+      margin: 0 0.15rem 0.7rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .glass {
+      background: var(--grouped);
+      backdrop-filter: saturate(140%) blur(22px);
+      -webkit-backdrop-filter: saturate(140%) blur(22px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    textarea,
+    .output {
+      width: 100%;
+      display: block;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+      padding: 0.95rem 1rem;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    textarea::placeholder { color: rgba(127, 145, 168, 0.85); }
+
+    #goal {
+      min-height: 110px;
+    }
+
+    .ideas {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .idea {
+      padding: 1rem 0 0.15rem;
+      animation: idea-in 0.32s ease;
+    }
+
+    .idea + .idea {
+      border-top: 1px solid var(--line);
+      margin-top: 0.15rem;
+    }
+
+    @keyframes idea-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .idea-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0 1rem 0.55rem;
+    }
+
+    .idea-index {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+
+    .idea-actions {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      border-top: 1px solid var(--line);
+    }
+
+    .field-label {
+      display: block;
+      padding: 0.7rem 1rem 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.01em;
+      text-transform: none;
+    }
+
+    .field-content textarea { min-height: 118px; }
+    .field-why textarea { min-height: 68px; }
+
+    #generate-section { margin-top: 1.35rem; }
+
+    .output {
+      min-height: 220px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--ink-soft);
+    }
+
+    .output:empty::before {
+      content: "生成后的提示词会出现在这里。";
+      color: rgba(127, 145, 168, 0.85);
+    }
+
+    .copy-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.45rem;
+      margin-top: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .save-status {
+      margin: 0.55rem 0.15rem 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      min-height: 1.2em;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-empty {
+      padding: 1.15rem 1rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .history-item {
+      padding: 0.95rem 1rem;
+      animation: idea-in 0.28s ease;
+    }
+
+    .history-item + .history-item {
+      border-top: 1px solid var(--line);
+    }
+
+    .history-meta {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .history-time {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+
+    .history-goal {
+      margin: 0 0 0.55rem;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .history-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .history-preview {
+      margin-top: 0.65rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: var(--radius-sm);
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      max-height: 220px;
+      overflow: auto;
+      display: none;
+    }
+
+    .history-item.is-open .history-preview {
+      display: block;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(1.4rem + var(--safe-bottom));
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(36, 48, 66, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: var(--ink);
+      border: 1px solid var(--line-strong);
+      padding: 0.65rem 1rem;
+      font-size: 0.92rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    footer {
+      margin-top: 2.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 560px) {
+      .wrap { width: min(100% - 1.35rem, var(--max)); }
+      .hero {
+        min-height: 82vh;
+        justify-content: center;
+        padding-top: 3.5rem;
+      }
+      body { font-size: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .brand, .hero h1, .hero p, .hero .cta, section {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="threads" aria-hidden="true">
+    <svg viewBox="0 0 1200 600" preserveAspectRatio="none">
+      <path d="M-20,180 C180,40 320,320 520,160 S820,40 980,220 1220,120 1240,160" />
+      <path d="M-40,280 C160,420 360,120 560,300 S860,480 1040,260 1220,340 1260,300" />
+      <path d="M0,360 C220,260 400,480 620,340 S900,200 1100,380 1240,300 1280,340" />
+    </svg>
+  </div>
+
+  <div class="wrap">
+    <header class="hero">
+      <p class="brand">织想</p>
+      <h1>把散落的对话，织成一条可用的提示词</h1>
+      <p>记下每次有用的想法，写清为什么留下它，再一键整理成可发给其他 AI 的架构设计 Prompt。</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#workspace">开始整理</a>
+      </div>
+    </header>
+
+    <section id="workspace">
+      <div class="section-head">
+        <h2 class="label">我的需求</h2>
+      </div>
+      <p class="hint">你最终想做成什么？整份 Prompt 都会围着它展开。</p>
+      <div class="glass">
+        <textarea id="goal" placeholder="例如：做一个想法整理工具，能把多段 AI 对话收成架构设计提示词……"></textarea>
+      </div>
+    </section>
+
+    <section id="ideas-section">
+      <div class="section-head">
+        <h2>想法列表</h2>
+        <button type="button" class="btn btn-ghost" id="add-idea">+ 添加</button>
+      </div>
+      <p class="hint">每一行：正文（想法内容）+ 为什么要用它。</p>
+      <div class="glass">
+        <div class="ideas" id="ideas"></div>
+      </div>
+    </section>
+
+    <section id="generate-section">
+      <button type="button" class="btn btn-primary btn-block" id="generate">生成架构设计 Prompt</button>
+    </section>
+
+    <section id="result-section">
+      <div class="section-head">
+        <h2>生成结果</h2>
+      </div>
+      <p class="hint">复制后可直接发给其他 AI，请它基于你的想法设计整体架构。</p>
+      <div class="glass">
+        <div class="output" id="output" tabindex="0"></div>
+      </div>
+      <div class="copy-row">
+        <button type="button" class="btn btn-ghost" id="copy" disabled>复制提示词</button>
+      </div>
+      <p class="save-status" id="save-status">输入内容会自动保存到本机。</p>
+    </section>
+
+    <section id="history-section">
+      <div class="section-head">
+        <h2>生成历史</h2>
+        <button type="button" class="btn btn-ghost btn-danger" id="clear-history" disabled>清空</button>
+      </div>
+      <p class="hint">每次点「生成」都会新增一条记录，并带上创建时间。</p>
+      <div class="glass">
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </section>
+
+    <footer>内容仅保存在本机浏览器，不会上传。刷新后仍可继续编辑。</footer>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const DRAFT_KEY = "zhixiang-draft-v1";
+    const HISTORY_KEY = "zhixiang-history-v1";
+    const LEGACY_KEY = "zhixiang-v1";
+
+    const ideasEl = document.getElementById("ideas");
+    const goalEl = document.getElementById("goal");
+    const outputEl = document.getElementById("output");
+    const copyBtn = document.getElementById("copy");
+    const toastEl = document.getElementById("toast");
+    const saveStatusEl = document.getElementById("save-status");
+    const historyListEl = document.getElementById("history-list");
+    const clearHistoryBtn = document.getElementById("clear-history");
+
+    let ideas = [];
+    let history = [];
+    let saveTimer = null;
+
+    function uid() {
+      return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+    }
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.classList.remove("show"), 1800);
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
+    }
+
+    function previewText(text, max = 72) {
+      const one = String(text || "").replace(/\s+/g, " ").trim();
+      if (!one) return "（无需求摘要）";
+      return one.length > max ? one.slice(0, max) + "…" : one;
+    }
+
+    function setSaveStatus(msg) {
+      saveStatusEl.textContent = msg;
+    }
+
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      setSaveStatus("正在保存…");
+      saveTimer = setTimeout(saveDraft, 200);
+    }
+
+    function saveDraft() {
+      const data = {
+        goal: goalEl.value,
+        ideas: ideas.map(({ id, content, why }) => ({ id, content, why })),
+        prompt: outputEl.textContent,
+        updatedAt: new Date().toISOString(),
+      };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+        setSaveStatus(`已自动保存 · ${formatTime(data.updatedAt)}`);
+      } catch (_) {
+        setSaveStatus("保存失败：浏览器存储空间可能已满");
+      }
+    }
+
+    function saveHistory() {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch (_) {
+        showToast("历史保存失败，可能空间不足");
+      }
+    }
+
+    function loadDraft() {
+      try {
+        let raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) raw = localStorage.getItem(LEGACY_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        goalEl.value = data.goal || "";
+        ideas = Array.isArray(data.ideas) && data.ideas.length
+          ? data.ideas.map((item) => ({
+              id: item.id || uid(),
+              content: item.content || "",
+              why: item.why || "",
+            }))
+          : [blankIdea()];
+        if (data.prompt) {
+          outputEl.textContent = data.prompt;
+          copyBtn.disabled = !data.prompt.trim();
+        }
+        if (data.updatedAt) {
+          setSaveStatus(`已恢复上次内容 · ${formatTime(data.updatedAt)}`);
+        } else {
+          setSaveStatus("已恢复上次内容");
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) {
+          history = [];
+          return;
+        }
+        const data = JSON.parse(raw);
+        history = Array.isArray(data) ? data : [];
+      } catch (_) {
+        history = [];
+      }
+    }
+
+    function blankIdea() {
+      return { id: uid(), content: "", why: "" };
+    }
+
+    function render() {
+      ideasEl.innerHTML = "";
+      ideas.forEach((idea, index) => {
+        const row = document.createElement("article");
+        row.className = "idea";
+        row.dataset.id = idea.id;
+        row.innerHTML = `
+          <div class="idea-top">
+            <span class="idea-index">想法 ${index + 1}</span>
+            <div class="idea-actions">
+              <button type="button" class="btn btn-ghost" data-act="up" ${index === 0 ? "disabled" : ""} title="上移">↑</button>
+              <button type="button" class="btn btn-ghost" data-act="down" ${index === ideas.length - 1 ? "disabled" : ""} title="下移">↓</button>
+              <button type="button" class="btn btn-ghost btn-danger" data-act="del" ${ideas.length === 1 ? "disabled" : ""}>删除</button>
+            </div>
+          </div>
+          <div class="field field-content">
+            <label class="field-label" for="c-${idea.id}">正文</label>
+            <textarea id="c-${idea.id}" data-field="content" placeholder="粘贴或写下这段想法……">${escapeHtml(idea.content)}</textarea>
+          </div>
+          <div class="field field-why">
+            <label class="field-label" for="w-${idea.id}">为什么要用它</label>
+            <textarea id="w-${idea.id}" data-field="why" placeholder="例如：解决了登录态问题 / 这个方案更简单……">${escapeHtml(idea.why)}</textarea>
+          </div>
+        `;
+        ideasEl.appendChild(row);
+      });
+    }
+
+    function renderHistory() {
+      historyListEl.innerHTML = "";
+      clearHistoryBtn.disabled = history.length === 0;
+
+      if (!history.length) {
+        historyListEl.innerHTML = `<div class="history-empty">还没有历史记录。点一次「生成」就会出现在这里。</div>`;
+        return;
+      }
+
+      history.forEach((item) => {
+        const row = document.createElement("article");
+        row.className = "history-item";
+        row.dataset.id = item.id;
+        row.innerHTML = `
+          <div class="history-meta">
+            <div class="history-time">${escapeHtml(formatTime(item.createdAt))}</div>
+            <div class="history-actions">
+              <button type="button" class="btn btn-ghost" data-hist="toggle">展开</button>
+              <button type="button" class="btn btn-ghost" data-hist="copy">复制</button>
+              <button type="button" class="btn btn-ghost" data-hist="restore">载入</button>
+              <button type="button" class="btn btn-ghost btn-danger" data-hist="del">删除</button>
+            </div>
+          </div>
+          <p class="history-goal">${escapeHtml(previewText(item.goal))}</p>
+          <pre class="history-preview">${escapeHtml(item.prompt || "")}</pre>
+        `;
+        historyListEl.appendChild(row);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function findIndex(id) {
+      return ideas.findIndex((item) => item.id === id);
+    }
+
+    ideasEl.addEventListener("input", (e) => {
+      const ta = e.target.closest("textarea");
+      if (!ta) return;
+      const row = ta.closest(".idea");
+      const idx = findIndex(row.dataset.id);
+      if (idx < 0) return;
+      ideas[idx][ta.dataset.field] = ta.value;
+      scheduleSave();
+    });
+
+    ideasEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn || btn.disabled) return;
+      const row = btn.closest(".idea");
+      const idx = findIndex(row.dataset.id);
+      if (idx < 0) return;
+      const act = btn.dataset.act;
+      if (act === "del") {
+        if (ideas.length === 1) return;
+        ideas.splice(idx, 1);
+      } else if (act === "up" && idx > 0) {
+        [ideas[idx - 1], ideas[idx]] = [ideas[idx], ideas[idx - 1]];
+      } else if (act === "down" && idx < ideas.length - 1) {
+        [ideas[idx + 1], ideas[idx]] = [ideas[idx], ideas[idx + 1]];
+      }
+      render();
+      scheduleSave();
+    });
+
+    document.getElementById("add-idea").addEventListener("click", () => {
+      ideas.push(blankIdea());
+      render();
+      scheduleSave();
+      const last = ideasEl.querySelector(".idea:last-child textarea");
+      if (last) last.focus();
+    });
+
+    goalEl.addEventListener("input", scheduleSave);
+
+    function buildPrompt() {
+      const goal = goalEl.value.trim();
+      const filled = ideas
+        .map((item, i) => ({
+          n: i + 1,
+          content: item.content.trim(),
+          why: item.why.trim(),
+        }))
+        .filter((item) => item.content || item.why);
+
+      const lines = [];
+      lines.push("我需要实现一个需求，并希望你帮我设计整体架构。");
+      lines.push("");
+      lines.push("【需求】");
+      lines.push(goal || "（尚未填写）");
+      lines.push("");
+      lines.push("【我的想法】");
+      lines.push("以下是我在与不同 AI 交流、思考过程中整理出的想法。每条包含「想法内容」和「为什么保留它」。请把它们视为我的原始素材，而不是最终结论。");
+      lines.push("");
+
+      if (!filled.length) {
+        lines.push("（尚未添加想法）");
+      } else {
+        filled.forEach((item) => {
+          lines.push(`${item.n}. 想法内容：`);
+          lines.push(item.content || "（空）");
+          lines.push(`   为什么要用它：`);
+          lines.push(item.why || "（未说明）");
+          lines.push("");
+        });
+      }
+
+      lines.push("【请你做的事】");
+      lines.push("请基于以上需求与想法，帮我设计整体架构：包括模块划分、关键流程、技术选型建议，以及一条清晰的实现路径。若想法之间有冲突，请指出并给出你的取舍建议。");
+
+      return lines.join("\n");
+    }
+
+    function addHistoryEntry(prompt) {
+      const entry = {
+        id: uid(),
+        createdAt: new Date().toISOString(),
+        goal: goalEl.value.trim(),
+        prompt,
+        ideas: ideas.map(({ content, why }) => ({
+          content: content.trim(),
+          why: why.trim(),
+        })),
+      };
+      history.unshift(entry);
+      if (history.length > 50) history = history.slice(0, 50);
+      saveHistory();
+      renderHistory();
+    }
+
+    document.getElementById("generate").addEventListener("click", () => {
+      const prompt = buildPrompt();
+      outputEl.textContent = prompt;
+      copyBtn.disabled = false;
+      addHistoryEntry(prompt);
+      saveDraft();
+      outputEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      showToast("已生成并写入历史");
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const text = outputEl.textContent;
+      if (!text.trim()) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("已复制到剪贴板");
+      } catch (_) {
+        const range = document.createRange();
+        range.selectNodeContents(outputEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        showToast("请手动复制选中内容");
+      }
+    });
+
+    historyListEl.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-hist]");
+      if (!btn) return;
+      const row = btn.closest(".history-item");
+      const id = row && row.dataset.id;
+      const item = history.find((h) => h.id === id);
+      if (!item) return;
+      const act = btn.dataset.hist;
+
+      if (act === "toggle") {
+        const open = row.classList.toggle("is-open");
+        btn.textContent = open ? "收起" : "展开";
+        return;
+      }
+
+      if (act === "copy") {
+        try {
+          await navigator.clipboard.writeText(item.prompt || "");
+          showToast("已复制该条历史");
+        } catch (_) {
+          showToast("复制失败，请展开后手动复制");
+        }
+        return;
+      }
+
+      if (act === "restore") {
+        goalEl.value = item.goal || "";
+        ideas = Array.isArray(item.ideas) && item.ideas.length
+          ? item.ideas.map((idea) => ({
+              id: uid(),
+              content: idea.content || "",
+              why: idea.why || "",
+            }))
+          : [blankIdea()];
+        outputEl.textContent = item.prompt || "";
+        copyBtn.disabled = !(item.prompt || "").trim();
+        render();
+        saveDraft();
+        showToast("已载入到当前编辑区");
+        document.getElementById("workspace").scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+
+      if (act === "del") {
+        history = history.filter((h) => h.id !== id);
+        saveHistory();
+        renderHistory();
+        showToast("已删除该条历史");
+      }
+    });
+
+    clearHistoryBtn.addEventListener("click", () => {
+      if (!history.length) return;
+      if (!confirm("确定清空全部生成历史？此操作不可恢复。")) return;
+      history = [];
+      saveHistory();
+      renderHistory();
+      showToast("历史已清空");
+    });
+
+    if (!loadDraft()) {
+      ideas = [blankIdea(), blankIdea()];
+      setSaveStatus("输入内容会自动保存到本机。");
+    }
+    loadHistory();
+    render();
+    renderHistory();
+  </script>
+</body>
+</html>
